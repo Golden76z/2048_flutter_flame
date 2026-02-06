@@ -3,6 +3,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../audio/audio_manager.dart';
 import 'board_component.dart';
 import 'board_state.dart';
 import 'direction.dart';
@@ -12,9 +13,12 @@ import 'direction.dart';
 /// Holds pure [BoardState] and a [BoardComponent] for rendering.
 /// Input: [move] (call from UI or keyboard) and arrow keys via [KeyboardEvents].
 class Flutter2048Game extends FlameGame with KeyboardEvents {
-  Flutter2048Game() : _boardState = BoardState();
+  Flutter2048Game({AudioManager? audioManager})
+      : _boardState = BoardState(),
+        _audio = audioManager;
 
   final BoardState _boardState;
+  final AudioManager? _audio;
 
   BoardState get boardState => _boardState;
 
@@ -25,12 +29,22 @@ class Flutter2048Game extends FlameGame with KeyboardEvents {
   Future<void> onLoad() async {
     await super.onLoad();
     add(BoardComponent(_boardState));
+    _audio?.startBgm();
   }
 
   /// Apply a move (e.g. from swipe in the UI). No-op if game over.
   void move(Direction direction) {
     if (_boardState.isGameOver) return;
-    _boardState.move(direction);
+    final scoreBefore = _boardState.score;
+    final changed = _boardState.move(direction);
+    final audio = _audio;
+    if (changed && audio != null) {
+      if (_boardState.score > scoreBefore) {
+        audio.playMerge();
+      } else {
+        audio.playMove();
+      }
+    }
   }
 
   /// Start a new game.

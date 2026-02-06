@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'audio/audio_manager.dart';
 import 'game/board_state.dart';
 import 'game/direction.dart';
 import 'game/flutter_2048_game.dart';
@@ -50,15 +51,19 @@ class GamePage extends StatefulWidget {
 }
 
 class _GamePageState extends State<GamePage> {
+  late final AudioManager audioManager;
   late final Flutter2048Game game;
 
   Offset? _panStart;
   Offset? _panLast;
+  bool _paused = false;
 
   @override
   void initState() {
     super.initState();
-    game = Flutter2048Game();
+    audioManager = AudioManager();
+    audioManager.preload();
+    game = Flutter2048Game(audioManager: audioManager);
   }
 
   void _onPanStart(DragStartDetails details) {
@@ -71,6 +76,7 @@ class _GamePageState extends State<GamePage> {
   }
 
   void _onPanEnd(DragEndDetails details) {
+    if (_paused) return;
     final start = _panStart;
     final end = _panLast;
     _panStart = null;
@@ -96,94 +102,206 @@ class _GamePageState extends State<GamePage> {
       appBar: AppBar(
         title: const Text('2048'),
         actions: [
+          ListenableBuilder(
+            listenable: audioManager,
+            builder: (context, _) {
+              return IconButton(
+                icon: Icon(
+                  audioManager.muted ? Icons.volume_off : Icons.volume_up,
+                ),
+                onPressed: () {
+                  audioManager.muted = !audioManager.muted;
+                },
+                tooltip: audioManager.muted ? 'Unmute' : 'Mute',
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => game.restart(),
             tooltip: 'New game',
           ),
+          IconButton(
+            icon: Icon(_paused ? Icons.play_arrow : Icons.pause),
+            onPressed: () => setState(() => _paused = !_paused),
+            tooltip: _paused ? 'Resume' : 'Pause',
+          ),
         ],
       ),
-      body: AnimatedBuilder(
-        animation: board,
-        builder: (context, _) {
-          final showOverlay = board.hasWon || board.isGameOver;
-          final title = board.hasWon ? 'You win!' : 'Game over';
-          final subtitle = board.hasWon
-              ? 'You reached ${BoardState.winValue}. Keep going or restart.'
-              : 'No more moves. Try again?';
+      body: SafeArea(
+        child: AnimatedBuilder(
+          animation: board,
+          builder: (context, _) {
+            final showWinLoseOverlay = board.hasWon || board.isGameOver;
+            final winLoseTitle = board.hasWon ? 'You win!' : 'Game over';
+            final winLoseSubtitle = board.hasWon
+                ? 'You reached ${BoardState.winValue}. Keep going or restart.'
+                : 'No more moves. Try again?';
 
-          return Center(
-            child: AspectRatio(
-              aspectRatio: 1,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Stack(
-                  children: [
-                    GestureDetector(
-                      onPanStart: _onPanStart,
-                      onPanUpdate: _onPanUpdate,
-                      onPanEnd: _onPanEnd,
-                      child: GameWidget(
-                        game: game,
-                      ),
-                    ),
-                    if (showOverlay)
-                      Positioned.fill(
-                        child: Container(
-                          color: Colors.black.withValues(alpha: 0.35),
-                          alignment: Alignment.center,
-                          child: Container(
-                            margin: const EdgeInsets.all(18),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFF1D6),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: const Color(0xFFF0A030),
-                                width: 2,
-                              ),
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  title,
-                                  style: const TextStyle(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF5C4A2A),
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  subtitle,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF5C4A2A),
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 12),
-                                FilledButton(
-                                  onPressed: () => game.restart(),
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(0xFFE06018),
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  child: const Text('Restart'),
-                                ),
-                              ],
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final side = constraints.maxWidth < constraints.maxHeight
+                    ? constraints.maxWidth
+                    : constraints.maxHeight;
+                final boardSize = side.clamp(0.0, 400.0);
+
+                return Center(
+                  child: SizedBox(
+                    width: boardSize,
+                    height: boardSize,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Stack(
+                        children: [
+                          GestureDetector(
+                            onPanStart: _onPanStart,
+                            onPanUpdate: _onPanUpdate,
+                            onPanEnd: _onPanEnd,
+                            child: GameWidget(
+                              game: game,
                             ),
                           ),
-                        ),
+                          if (_paused)
+                            Positioned.fill(
+                              child: _OverlayCard(
+                                title: 'Paused',
+                                subtitle: 'Resume or change settings.',
+                                children: [
+                                  FilledButton.icon(
+                                    onPressed: () =>
+                                        setState(() => _paused = false),
+                                    icon: const Icon(Icons.play_arrow),
+                                    label: const Text('Resume'),
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: const Color(0xFFE06018),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  ListenableBuilder(
+                                    listenable: audioManager,
+                                    builder: (context, _) {
+                                      return FilledButton.icon(
+                                        onPressed: () {
+                                          audioManager.muted =
+                                              !audioManager.muted;
+                                        },
+                                        icon: Icon(audioManager.muted
+                                            ? Icons.volume_off
+                                            : Icons.volume_up),
+                                        label: Text(
+                                            audioManager.muted
+                                                ? 'Unmute'
+                                                : 'Mute'),
+                                        style: FilledButton.styleFrom(
+                                          backgroundColor:
+                                              const Color(0xFFD4B878),
+                                          foregroundColor:
+                                              const Color(0xFF5C4A2A),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 8),
+                                  OutlinedButton.icon(
+                                    onPressed: () {
+                                      game.restart();
+                                      setState(() => _paused = false);
+                                    },
+                                    icon: const Icon(Icons.refresh),
+                                    label: const Text('New game'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFF5C4A2A),
+                                      side: const BorderSide(
+                                          color: Color(0xFFF0A030)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (showWinLoseOverlay && !_paused)
+                            Positioned.fill(
+                              child: _OverlayCard(
+                                title: winLoseTitle,
+                                subtitle: winLoseSubtitle,
+                                children: [
+                                  FilledButton(
+                                    onPressed: () => game.restart(),
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: const Color(0xFFE06018),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: const Text('Restart'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
-                  ],
-                ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _OverlayCard extends StatelessWidget {
+  const _OverlayCard({
+    required this.title,
+    required this.subtitle,
+    required this.children,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black.withValues(alpha: 0.35),
+      alignment: Alignment.center,
+      child: Container(
+        margin: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF1D6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFF0A030),
+            width: 2,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF5C4A2A),
               ),
+              textAlign: TextAlign.center,
             ),
-          );
-        },
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF5C4A2A),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ...children,
+          ],
+        ),
       ),
     );
   }
