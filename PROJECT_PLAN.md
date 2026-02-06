@@ -9,7 +9,7 @@
 - [x] Implement responsive layout for Android & iOS (portrait-first).
 - [x] Integrate audio (move/merge sounds and optional background loop) with mute toggle.
 - [x] Add simple main menu and pause/settings overlay (sound toggle, maybe haptics).
-- [ ] Add basic tests for game logic (moves, merges, win/lose).
-- [ ] Polish animations (tile movement, spawn, merge) and performance.
-- [ ] Update README with setup, run instructions, and platform notes.
+- [x] Add basic tests for game logic (moves, merges, win/lose).
+- [x] Polish animations (tile movement, spawn, merge) and performance.
+- [x] Update README with setup, run instructions, and platform notes.
 

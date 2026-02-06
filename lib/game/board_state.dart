@@ -11,13 +11,23 @@ class BoardState extends ChangeNotifier {
   BoardState({
     int size = 4,
     Random? random,
+    /// For tests: start with this grid (no spawn). Must be [size][size].
+    List<List<int>>? initialGrid,
   })  : _size = size,
         _random = random ?? Random(),
         _grid = List.generate(size, (_) => List.filled(size, 0)),
         _score = 0,
         _hasWon = false {
-    _spawnTile();
-    _spawnTile();
+    if (initialGrid != null) {
+      for (int r = 0; r < size && r < initialGrid.length; r++) {
+        for (int c = 0; c < size && c < initialGrid[r].length; c++) {
+          _grid[r][c] = initialGrid[r][c];
+        }
+      }
+    } else {
+      _spawnTile();
+      _spawnTile();
+    }
   }
 
   final int _size;
@@ -25,6 +35,8 @@ class BoardState extends ChangeNotifier {
   final List<List<int>> _grid;
   int _score;
   bool _hasWon;
+  int? _lastSpawnedRow;
+  int? _lastSpawnedCol;
 
   static const int defaultSize = 4;
   static const int winValue = 2048;
@@ -32,6 +44,10 @@ class BoardState extends ChangeNotifier {
   int get size => _size;
   int get score => _score;
   bool get hasWon => _hasWon;
+
+  /// Last spawned cell (for spawn animation). Cleared at start of next move or reset.
+  int? get lastSpawnedRow => _lastSpawnedRow;
+  int? get lastSpawnedCol => _lastSpawnedCol;
 
   /// Current grid: [row][col], 0 = empty.
   List<List<int>> get grid =>
@@ -42,6 +58,8 @@ class BoardState extends ChangeNotifier {
 
   /// Returns true if a move was made (board or score changed).
   bool move(Direction direction) {
+    _lastSpawnedRow = null;
+    _lastSpawnedCol = null;
     final previous = _gridToString();
     _applyMove(direction);
     final changed = _gridToString() != previous;
@@ -162,6 +180,8 @@ class BoardState extends ChangeNotifier {
     if (empty.isEmpty) return;
     final pos = empty[_random.nextInt(empty.length)];
     _grid[pos[0]][pos[1]] = _random.nextDouble() < 0.9 ? 2 : 4;
+    _lastSpawnedRow = pos[0];
+    _lastSpawnedCol = pos[1];
   }
 
   String _gridToString() {
@@ -170,6 +190,8 @@ class BoardState extends ChangeNotifier {
 
   /// Start a new game (same size).
   void reset() {
+    _lastSpawnedRow = null;
+    _lastSpawnedCol = null;
     for (int r = 0; r < _size; r++) {
       for (int c = 0; c < _size; c++) {
         _grid[r][c] = 0;

@@ -23,7 +23,7 @@ class Flutter2048Game extends FlameGame with KeyboardEvents {
   BoardState get boardState => _boardState;
 
   @override
-  Color backgroundColor() => const Color(0xFFFAF3E0);
+  Color backgroundColor() => const Color(0xFFEDE7F6);
 
   @override
   Future<void> onLoad() async {

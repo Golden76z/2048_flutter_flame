@@ -1,9 +1,9 @@
 ### Project Identity
 
 - **Project**: 2048 game built with Flutter + Flame.
-- **Theme**: Prefer **warm yellow/red tones** throughout the UI.
-  - Use yellows for base tiles/backgrounds, and reds/oranges for high-value tiles, highlights, and primary actions.
-  - Avoid cold colors (blue/green) except for subtle accents (e.g. shadows, dividers) when necessary.
+- **Theme**: Prefer **purple/blue tones** throughout the UI.
+  - Use light purples for base tiles/backgrounds, and deeper purples/blues for high-value tiles, highlights, and primary actions.
+  - Home screen uses a dark blue/purple background with light text and buttons.
 - **Mood**: Clean, modern, slightly arcade-like, but not visually noisy.
 
 ### UI & UX Guidelines
@@ -13,10 +13,10 @@
   - Prioritize portrait mode for gameplay; landscape support is optional but should not break.
 - **Typography**:
   - Use a single, legible sans-serif font across the app.
-  - Ensure sufficient contrast for text on yellow/red backgrounds.
+  - Ensure sufficient contrast for text on purple/blue backgrounds.
 - **Game Board**:
   - Board must look like a cohesive grid with clear separation between tiles.
-  - Tile colors should progressively intensify (from light yellow to deep red) as tile values increase.
+  - Tile colors should progressively intensify (from light purple to deep blue) as tile values increase.
 - **Animations**:
   - Use smooth, short animations for tile movement and merging.
   - Avoid excessive or distracting effects; prioritize clarity of gameplay.

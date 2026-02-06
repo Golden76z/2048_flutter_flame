@@ -4,21 +4,21 @@ import 'package:flutter/material.dart';
 
 import 'board_state.dart';
 
-/// Tile background colors by value (yellow → red progression).
+/// Tile background colors by value (light purple → deep blue progression).
 Color colorForValue(int value) {
   const colors = [
-    Color(0xFFF5E6C8), // 0 empty
-    Color(0xFFF5E6C8), // 2
-    Color(0xFFF8E071), // 4
-    Color(0xFFF5C842), // 8
-    Color(0xFFF0A030), // 16
-    Color(0xFFE88020), // 32
-    Color(0xFFE06018), // 64
-    Color(0xFFD84010), // 128
-    Color(0xFFC83008), // 256
-    Color(0xFFB02000), // 512
-    Color(0xFF901800), // 1024
-    Color(0xFF701000), // 2048
+    Color(0xFFD1C4E9), // 0 empty
+    Color(0xFFD1C4E9), // 2
+    Color(0xFFB39DDB), // 4
+    Color(0xFF9575CD), // 8
+    Color(0xFF7E57C2), // 16
+    Color(0xFF673AB7), // 32
+    Color(0xFF5E35B1), // 64
+    Color(0xFF5349AB), // 128
+    Color(0xFF3949AB), // 256
+    Color(0xFF303F9F), // 512
+    Color(0xFF283593), // 1024
+    Color(0xFF1A237E), // 2048
   ];
   if (value <= 0) return colors[0];
   final v = value.clamp(2, 8192);
@@ -35,6 +35,36 @@ class BoardComponent extends Component {
 
   static const double padding = 12;
   static const double gap = 8;
+  static const double spawnAnimDuration = 0.12;
+
+  int? _spawnAnimRow;
+  int? _spawnAnimCol;
+  double _spawnAnimT = 1.0;
+  int? _lastConsumedSpawnRow;
+  int? _lastConsumedSpawnCol;
+
+  @override
+  void update(double dt) {
+    final r = boardState.lastSpawnedRow;
+    final c = boardState.lastSpawnedCol;
+    if (r == null || c == null) {
+      _lastConsumedSpawnRow = null;
+      _lastConsumedSpawnCol = null;
+    } else if (_spawnAnimT >= 1.0 && (r != _lastConsumedSpawnRow || c != _lastConsumedSpawnCol)) {
+      _lastConsumedSpawnRow = r;
+      _lastConsumedSpawnCol = c;
+      _spawnAnimRow = r;
+      _spawnAnimCol = c;
+      _spawnAnimT = 0.0;
+    }
+    if (_spawnAnimT < 1.0) {
+      _spawnAnimT = (_spawnAnimT + dt / spawnAnimDuration).clamp(0.0, 1.0);
+      if (_spawnAnimT >= 1.0) {
+        _spawnAnimRow = null;
+        _spawnAnimCol = null;
+      }
+    }
+  }
 
   @override
   void render(Canvas canvas) {
@@ -50,38 +80,16 @@ class BoardComponent extends Component {
       (size.y - boardSide) / 2,
     );
 
-    _drawScore(canvas, size, topLeft);
     _drawGrid(canvas, topLeft, cellSide);
     _drawTiles(canvas, topLeft, cellSide);
   }
 
-  void _drawScore(Canvas canvas, Vector2 size, Offset topLeft) {
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: 'Score: ${boardState.score}',
-        style: const TextStyle(
-          color: Color(0xFF5C4A2A),
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        topLeft.dx,
-        (topLeft.dy - textPainter.height - 8).clamp(4.0, double.infinity),
-      ),
-    );
-  }
-
   void _drawGrid(Canvas canvas, Offset topLeft, double cellSide) {
     final paint = Paint()
-      ..color = const Color(0xFFE8D4A8)
+      ..color = const Color(0xFFE1D5F1)
       ..style = PaintingStyle.fill;
     final border = Paint()
-      ..color = const Color(0xFFD4B878)
+      ..color = const Color(0xFFB39DDB)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
@@ -107,6 +115,17 @@ class BoardComponent extends Component {
         if (value == 0) continue;
         final x = topLeft.dx + gap + c * (cellSide + gap);
         final y = topLeft.dy + gap + r * (cellSide + gap);
+        final cellCenter = Offset(x + cellSide / 2, y + cellSide / 2);
+        final isSpawning = _spawnAnimRow == r && _spawnAnimCol == c && _spawnAnimT < 1.0;
+        final scale = isSpawning ? 0.4 + 0.6 * _spawnAnimT : 1.0;
+
+        if (isSpawning) {
+          canvas.save();
+          canvas.translate(cellCenter.dx, cellCenter.dy);
+          canvas.scale(scale);
+          canvas.translate(-cellCenter.dx, -cellCenter.dy);
+        }
+
         final rect = RRect.fromRectAndRadius(
           Rect.fromLTWH(x + 2, y + 2, cellSide - 4, cellSide - 4),
           const Radius.circular(4),
@@ -118,7 +137,7 @@ class BoardComponent extends Component {
           text: TextSpan(
             text: text,
             style: TextStyle(
-              color: value <= 4 ? const Color(0xFF5C4A2A) : const Color(0xFFFFFFFF),
+              color: value <= 4 ? const Color(0xFF3F51B5) : const Color(0xFFFFFFFF),
               fontSize: cellSide * 0.4,
               fontWeight: FontWeight.bold,
             ),
@@ -132,6 +151,8 @@ class BoardComponent extends Component {
             y + (cellSide - textPainter.height) / 2,
           ),
         );
+
+        if (isSpawning) canvas.restore();
       }
     }
   }
