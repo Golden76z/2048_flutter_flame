@@ -1,0 +1,83 @@
+### Project Identity
+
+- **Project**: 2048 game built with Flutter + Flame.
+- **Theme**: Prefer **warm yellow/red tones** throughout the UI.
+  - Use yellows for base tiles/backgrounds, and reds/oranges for high-value tiles, highlights, and primary actions.
+  - Avoid cold colors (blue/green) except for subtle accents (e.g. shadows, dividers) when necessary.
+- **Mood**: Clean, modern, slightly arcade-like, but not visually noisy.
+
+### UI & UX Guidelines
+
+- **Responsiveness**:
+  - Layouts must adapt to different screen sizes and orientations on Android and iOS.
+  - Prioritize portrait mode for gameplay; landscape support is optional but should not break.
+- **Typography**:
+  - Use a single, legible sans-serif font across the app.
+  - Ensure sufficient contrast for text on yellow/red backgrounds.
+- **Game Board**:
+  - Board must look like a cohesive grid with clear separation between tiles.
+  - Tile colors should progressively intensify (from light yellow to deep red) as tile values increase.
+- **Animations**:
+  - Use smooth, short animations for tile movement and merging.
+  - Avoid excessive or distracting effects; prioritize clarity of gameplay.
+
+### Audio Guidelines
+
+- Add sound effects that fit the arcade puzzle style:
+  - Subtle move sound when tiles slide.
+  - Satisfying merge sound that scales slightly with tile value.
+  - Optional soft background loop that can be muted.
+- All audio must:
+  - Be short and non-intrusive.
+  - Have a global mute toggle within the UI.
+  - Use `flame_audio` (or a similar Flame-compatible approach) for playback.
+
+### Architecture & Code Organization
+
+- **Structure**:
+  - Use Flame’s `Game` (or `FlameGame`) as the core game loop.
+  - Keep **game logic** separated from **Flutter UI**:
+    - Game state and rules (grid, tiles, moves, merges, score, game-over) live in pure Dart classes.
+    - Flutter widgets are thin wrappers around the game, HUD, and menus.
+- **State Management**:
+  - Prefer simple, explicit state management for the game:
+    - Encapsulate board state and actions (e.g. `moveLeft`, `moveRight`, etc.) in dedicated classes.
+    - Expose simple APIs from the game/state to Flutter widgets.
+  - Only introduce heavier frameworks (Bloc, Riverpod, etc.) if the project grows significantly.
+- **Separation of Concerns**:
+  - Keep rendering and input handling in Flame components.
+  - Avoid business/game logic inside Flutter widgets.
+  - Extract reusable helpers (colors, text styles, spacing, audio keys) into dedicated files.
+
+### Coding Style & Quality
+
+- **General**:
+  - Follow idiomatic Dart & Flutter conventions.
+  - Prefer readability over cleverness.
+  - Use meaningful names for variables, classes, and methods.
+- **Null Safety**:
+  - Assume null-safety is enabled and avoid using `!` unless absolutely necessary.
+- **Error Handling**:
+  - Fail fast during development (e.g. `assert`s, throws) where bad states should never happen.
+  - Avoid silent failures in core game logic.
+
+### Testing & Iteration
+
+- Add unit tests for core game mechanics when the rules are stable:
+  - Moving tiles.
+  - Merging rules.
+  - Spawning new tiles.
+  - Detecting win/lose states.
+- Prefer fast feedback loops:
+  - Small, focused changes.
+  - Keep the game always runnable on at least one platform (Android or iOS).
+
+### Project Workflow
+
+- Always keep the **project plan markdown file with checkboxes** up-to-date:
+  - Check off tasks that are completed.
+  - Add new tasks as the feature set evolves.
+- When making significant changes:
+  - Update documentation/README if commands or behaviors change.
+  - Maintain theme consistency (colors, typography, audio feel) across new screens and features.
+
